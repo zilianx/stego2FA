@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Stego 2FA — Secure Hybrid QR Authentication Suite</title>
+
+<!-- ✅ META / SEO -->
+<meta name="description" content="Stego 2FA — a hybrid authentication suite combining AES encryption, LSB steganography, and watermarking for secure QR-based 2-factor authentication.">
+<meta name="keywords" content="Stego, 2FA, AES, QR, watermark, LSB, encryption, authentication, hybrid security">
+<meta name="author" content="Stego 2FA Team">
+
+<!-- ✅ SOCIAL / PREVIEW -->
+<meta property="og:title" content="Stego 2FA — Secure Hybrid QR Authentication Suite">
+<meta property="og:description" content="Generate and extract encrypted QR payloads using AES + LSB steganography. A next-gen visual authentication system.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://yourusername.github.io/stego2fa/">
+<meta property="og:image" content="https://yourusername.github.io/stego2fa/assets/preview.png">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stego 2FA">
+<meta name="twitter:description" content="Hybrid QR Authentication — AES + LSB + Watermark">
+<meta name="twitter:image" content="https://yourusername.github.io/stego2fa/assets/preview.png">
+
+<!-- ✅ FAVICON -->
+<link rel="icon" type="image/png" href="https://img.icons8.com/fluency/96/qr-code.png">
+<link rel="apple-touch-icon" href="https://img.icons8.com/fluency/96/qr-code.png">
+<link rel="manifest" href="manifest.json">
+
+<!-- ✅ FONTS -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg1:#050b16; --bg2:#0d1727;
+  --accent1:#7c3aed; --accent2:#06b6d4;
+  --glass:rgba(255,255,255,0.06);
+  --text-main:#e9eef8; --muted:#94a3b8;
+  --glow:0 0 18px rgba(124,58,237,0.5),0 0 28px rgba(6,182,212,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:radial-gradient(circle at top left,var(--bg2),var(--bg1));
+  background-size:200% 200%;
+  animation:gradientMove 16s ease infinite;
+  color:var(--text-main);
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+@keyframes gradientMove{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+header{
+  background:linear-gradient(90deg,rgba(124,58,237,0.16),rgba(6,182,212,0.12));
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 32px;
+  box-shadow:0 6px 30px rgba(0,0,0,0.3);
+  position:sticky;top:0;z-index:10;
+}
+.logo{
+  width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent1),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Poppins',sans-serif;font-weight:700;color:#fff;
+  box-shadow:var(--glow);
+}
+header h1{font-size:20px;font-weight:700;}
+header p{color:var(--muted);font-size:13px;margin-top:2px;}
+
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:28px;
+  max-width:960px;width:100%;
+}
+.card{
+  background:var(--glass);
+  backdrop-filter:blur(14px);
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 10px 40px rgba(0,0,0,0.45);
+  padding:28px;
+  text-align:center;
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 20%,rgba(124,58,237,0.12),transparent 60%),
+             radial-gradient(circle at 80% 80%,rgba(6,182,212,0.08),transparent 50%);
+  z-index:0;transition:opacity .3s;
+}
+.card:hover::before{opacity:.8;}
+.card:hover{
+  transform:translateY(-8px);
+  box-shadow:var(--glow);
+  border-color:rgba(6,182,212,0.3);
+}
+.card img{width:70px;height:70px;z-index:1;position:relative;}
+.card h2{font-family:'Poppins',sans-serif;font-size:20px;margin:12px 0 6px;z-index:1;position:relative;}
+.card p{color:var(--muted);font-size:14px;margin-bottom:20px;z-index:1;position:relative;}
+a.btn{
+  display:inline-block;text-decoration:none;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;font-weight:700;padding:10px 18px;border-radius:10px;
+  transition:all .18s;z-index:1;position:relative;
+}
+a.btn:hover{box-shadow:var(--glow);transform:translateY(-3px);}
+footer{
+  text-align:center;color:var(--muted);font-size:13px;
+  padding:20px;border-top:1px solid rgba(255,255,255,0.04);
+}
+footer span{color:var(--accent2);}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="logo">S2</div>
+    <div>
+      <h1>Stego 2FA</h1>
+      <p>Hybrid QR Authentication — AES + LSB + Watermark</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card">
+      <img src="https://img.icons8.com/fluency/96/lock--v1.png" alt="Generator Icon">
+      <h2>Generator</h2>
+      <p>Create secure steganographic QR payloads with AES encryption and watermarking.</p>
+      <a class="btn" href="xx.html">Launch Generator</a>
+    </div>
+
+    <div class="card">
+      <img src="https://img.icons8.com/color/96/qr-code.png" alt="Extractor Icon">
+      <h2>Extractor</h2>
+      <p>Extract and verify encrypted QR payloads from stego images securely.</p>
+      <a class="btn" href="yy.html">Launch Extractor</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  © 2025 <span>Stego 2FA</span> — Secure QR Authentication Suite
+</footer>
+</body>
+</html>
