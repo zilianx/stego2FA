@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Stego 2FA — Extractor (Client, AI Features)</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <style>
+    :root {
+      --bg1: #050b16;
+      --bg2: #0d1727;
+      --glass: rgba(255,255,255,0.06);
+      --text-main: #e9eef8;
+      --muted: #94a3b8;
+      --accent1: #7c3aed;
+      --accent2: #06b6d4;
+      --glow: 0 0 18px rgba(124,58,237,0.5), 0 0 28px rgba(6,182,212,0.3);
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:'Inter',system-ui,sans-serif;
+      background:radial-gradient(circle at top left,#0d1727,#050b16);
+      color:var(--text-main);
+      min-height:100vh;
+    }
+    /* HEADER */
+    header{
+      background:linear-gradient(90deg,rgba(124,58,237,0.16),rgba(6,182,212,0.12));
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 28px;
+      box-shadow:0 6px 30px rgba(0,0,0,0.3);
+      position:sticky;top:0;z-index:20;
+    }
+    .header-left{display:flex;align-items:center;gap:14px;}
+    .logo{
+      width:48px;height:48px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Poppins',sans-serif;font-weight:700;color:#fff;box-shadow:var(--glow);
+    }
+    header h1{margin:0;font-size:18px;font-weight:700;}
+    header p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+    .header-right button{
+      padding:8px 14px;border-radius:10px;border:none;
+      background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;
+      font-weight:700;cursor:pointer;transition:.18s;
+    }
+    .header-right button:hover{transform:translateY(-2px);box-shadow:var(--glow);}
+    
+    /* MAIN LAYOUT */
+    .wrap{max-width:1080px;margin:36px auto;display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start;padding:0 20px;}
+    .card{
+      background:var(--glass);backdrop-filter:blur(12px);border-radius:16px;padding:20px;
+      border:1px solid rgba(255,255,255,0.06);box-shadow:0 10px 40px rgba(0,0,0,0.45);
+    }
+    label{display:block;font-size:13px;color:#cfe7ff;margin-bottom:6px;font-weight:600;}
+    input[type=password],input[type=file]{width:100%;padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e6eef8;}
+    input:focus{border-color:var(--accent2);box-shadow:0 0 0 4px rgba(6,182,212,0.12);outline:none;}
+    .btn-primary{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;font-weight:700;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;transition:.18s;}
+    .btn-primary:hover{box-shadow:var(--glow);transform:translateY(-3px);}
+    .btn-ghost{background:rgba(255,255,255,0.03);color:var(--muted);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 16px;cursor:pointer;}
+    .btn-ghost:hover{color:white;background:rgba(255,255,255,0.06);border-color:var(--accent2);}
+    .muted{color:var(--muted);font-size:13px;}
+    #dropzone{margin-top:10px;height:120px;border-radius:12px;border:2px dashed rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);transition:border-color .15s,box-shadow .15s,transform .15s;}
+    #dropzone.drag{border-color:rgba(124,58,237,0.6);box-shadow:var(--glow);transform:translateY(-3px);color:#e6eef8;}
+    canvas#inspect-canvas{width:100%;border-radius:12px;margin-top:12px;display:none;background:white;}
+    .canvas-wrap{position:relative;display:inline-block;}
+    #heatmap-canvas{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen;border-radius:12px;display:none;}
+    .pw-meter{display:flex;align-items:center;gap:8px;margin-top:8px;}
+    #pwMeter{flex:1;height:8px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;}
+    #pwMeterFill{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent1),var(--accent2));transition:width .38s ease;}
+    .process-title{margin-top:12px;color:#cfe7ff;font-weight:700;font-size:13px;}
+    #processLog{margin-top:8px;font-family:ui-monospace,Menlo,Monaco,monospace;font-size:13px;white-space:pre-wrap;background:rgba(0,0,0,0.45);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:#cfcfcf;max-height:220px;overflow:auto;}
+    #logSummary{margin-top:8px;color:var(--muted);font-size:13px;}
+    pre.payload{background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin-top:8px;color:#bfefff;white-space:pre-wrap;overflow:auto;}
+    footer{text-align:center;color:var(--muted);font-size:13px;padding:20px;margin-top:36px;border-top:1px solid rgba(255,255,255,0.04);}
+    footer span{color:var(--accent2);}
+    @media(max-width:560px){.wrap{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">S2</div>
+    <div>
+      <h1>Stego 2FA — Extractor (Client)</h1>
+      <p>Decrypt and verify stego QR payloads securely (5-min TTL)</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <label for="fileInput">Upload stego PNG</label>
+    <div id="dropzone">Drag & drop a PNG file here, or click to choose</div>
+    <input id="fileInput" type="file" accept="image/png,image/*" style="display:none"/>
+
+    <label style="margin-top:12px;">Password (used when generating)</label>
+    <input id="password" type="password" placeholder="Enter password to decrypt"/>
+
+    <div class="pw-meter">
+      <div id="pwStrength" class="muted small">Strength: —</div>
+      <div id="pwMeter"><i id="pwMeterFill"></i></div>
+    </div>
+
+    <div id="ttsToggleWrap" style="margin-top:8px;display:flex;align-items:center;gap:8px;color:var(--muted)">
+      <label><input id="ttsToggle" type="checkbox"/> Voice feedback</label>
+    </div>
+
+    <div class="row-actions" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <button id="extractBtn" class="btn-primary">Extract & Verify</button>
+      <button id="resetBtn" class="btn-ghost">Reset</button>
+    </div>
+
+    <div class="canvas-wrap" style="margin-top:14px;">
+      <canvas id="inspect-canvas"></canvas>
+      <canvas id="heatmap-canvas"></canvas>
+    </div>
+
+    <div class="process-title">Process Log</div>
+    <div id="processLog"></div>
+    <div id="logSummary">Summary: —</div>
+  </div>
+
+  <aside class="card" style="min-height:260px;">
+    <div style="font-weight:700;margin-bottom:8px;">Result</div>
+    <div id="result" class="muted">Nothing extracted yet — follow the steps on the left.</div>
+    <div id="meta" style="margin-top:12px;"></div>
+  </aside>
+</div>
+
+<footer>
+  © 2025 <span>Stego 2FA</span> — Secure QR Extractor Interface
+</footer>
+
+<script>
+/* All original JS preserved */
+(function(){
+  const fileInput=document.getElementById('fileInput');
+  const passwordInput=document.getElementById('password');
+  const extractBtn=document.getElementById('extractBtn');
+  const resetBtn=document.getElementById('resetBtn');
+  const processLogEl=document.getElementById('processLog');
+  const resultEl=document.getElementById('result');
+  const canvas=document.getElementById('inspect-canvas');
+  const heatmapCanvas=document.getElementById('heatmap-canvas');
+  const ctx=canvas.getContext('2d');
+  const dropzone=document.getElementById('dropzone');
+  const meta=document.getElementById('meta');
+  const logSummaryEl=document.getElementById('logSummary');
+  const pwStrength=document.getElementById('pwStrength');
+  const pwMeterFill=document.getElementById('pwMeterFill');
+  const ttsToggle=document.getElementById('ttsToggle');
+  const TTL_MS_FIXED=5*60*1000;
+
+  function speak(msg){
+    if(!ttsToggle.checked)return;
+    if(!('speechSynthesis'in window))return;
+    try{window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(msg);
+      u.rate=1;u.pitch=1;
+      window.speechSynthesis.speak(u);
+    }catch(e){console.warn('TTS failed',e);}
+  }
+
+  function summarizeLog(){
+    const raw=processLogEl.textContent.trim();
+    if(!raw){logSummaryEl.textContent='Summary: —';return;}
+    const lines=raw.split('\n').reverse();
+    let hasError=false,hasOk=false,hasEmbed=false;
+    for(const l of lines){
+      if(/error|failed|cannot|expired/i.test(l)){hasError=true;break;}
+      if(/HMAC verified|Decrypting|Decrypted|✅|verified/i.test(l))hasOk=true;
+      if(/Embedding payload|Payload chars|Carrier capacity/i.test(l))hasEmbed=true;
+      if(hasOk&&hasEmbed)break;
+    }
+    let summary;
+    if(hasError)summary='Error detected — check details above';
+    else if(hasOk&&hasEmbed)summary='Payload read and verified (OK)';
+    else if(hasOk)summary='Operation OK';
+    else if(hasEmbed)summary='Reading embedded payload...';
+    else summary=(lines[0]||'—').slice(0,120);
+    logSummaryEl.textContent='Summary: '+summary;
+  }
+
+  function log(msg,type){
+    const line=(typeof msg==='string')?msg:JSON.stringify(msg);
+    processLogEl.textContent+=line+'\n';
+    processLogEl.scrollTop=processLogEl.scrollHeight;
+    summarizeLog();
+    if(/error|failed|cannot|mismatch/i.test(line))speak('Error: '+line);
+    else if(/HMAC verified|Decrypting|✅|verified/i.test(line))speak(line);
+    if(type==='error')console.error(line);else console.log(line);
+  }
+
+  passwordInput.addEventListener('input',()=>{
+    try{
+      const res=zxcvbn(passwordInput.value||'');
+      const score=res.score;
+      const labels=['Very weak','Weak','Fair','Good','Strong'];
+      pwStrength.textContent='Strength: '+labels[score];
+      pwMeterFill.style.width=((score+1)/5*100)+'%';
+      if(res.feedback&&res.feedback.warning)pwStrength.textContent+=' — '+res.feedback.warning;
+    }catch(e){pwStrength.textContent='Strength: —';pwMeterFill.style.width='0%';}
+  });
+
+  function renderHeatmap(bits,width,height){
+    if(!heatmapCanvas)return;
+    heatmapCanvas.width=width;heatmapCanvas.height=height;
+    const hmCtx=heatmapCanvas.getContext('2d');
+    hmCtx.clearRect(0,0,width,height);
+    const img=hmCtx.createImageData(width,height);
+    for(let p=0;p<width*height;p++){
+      const alpha=bits&&bits[p]?110:0;
+      const idx=p*4;
+      img.data[idx]=255;img.data[idx+1]=40;img.data[idx+2]=40;img.data[idx+3]=alpha;
+    }
+    hmCtx.putImageData(img,0,0);
+    heatmapCanvas.style.display='block';
+  }
+
+  function bitsToBytes(bits){
+    const n=Math.floor(bits.length/8);
+    const bytes=new Uint8Array(n);
+    for(let i=0;i<n;i++){
+      let v=0;for(let b=0;b<8;b++){v=(v<<1)|bits[i*8+b];}
+      bytes[i]=v;
+    }return bytes;
+  }
+  function hexEquals(a,b){return!!a&&!!b&&a.toLowerCase()===b.toLowerCase();}
+
+  dropzone.addEventListener('click',()=>fileInput.click());
+  dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('drag');});
+  dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop',e=>{
+    e.preventDefault();dropzone.classList.remove('drag');
+    const f=(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]);
+    if(f)fileInput.files=e.dataTransfer.files;
+    const prev=dropzone.textContent;
+    dropzone.textContent='File ready — click Extract';
+    setTimeout(()=>dropzone.textContent=prev,1200);
+  });
+  fileInput.addEventListener('change',()=>{
+    if(fileInput.files&&fileInput.files[0])dropzone.textContent=fileInput.files[0].name;
+    else dropzone.textContent='Drag & drop a PNG file here, or click to choose';
+  });
+
+  async function handleExtract(){
+    processLogEl.textContent='';log('Starting extraction...');
+    resultEl.innerHTML='Working...';meta.innerHTML='';
+    heatmapCanvas.style.display='none';
+    const file=fileInput.files&&fileInput.files[0];
+    const password=passwordInput.value;
+    if(!file){log('Please choose a PNG file to upload.','error');resultEl.innerHTML='<div class="error">No file selected</div>';return;}
+    if(!password){log('Please enter the password used when generating the stego PNG.','error');resultEl.innerHTML='<div class="error">No password</div>';return;}
+    const img=new Image();const url=URL.createObjectURL(file);img.src=url;
+    img.onload=()=>{
+      try{
+        const w=img.naturalWidth||img.width;const h=img.naturalHeight||img.height;
+        canvas.width=w;canvas.height=h;canvas.style.display='block';heatmapCanvas.width=w;heatmapCanvas.height=h;
+        if(typeof ctx.imageSmoothingEnabled!=='undefined')ctx.imageSmoothingEnabled=false;
+        ctx.clearRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        const imageData=ctx.getImageData(0,0,w,h);
+        const totalPixels=w*h;log(`Image size: ${w} x ${h} (${totalPixels} px)`);
+        if(totalPixels<4)throw new Error('Image too small to contain header.');
+        const data=imageData.data;const bits=[];
+        for(let p=0;p<Math.min(totalPixels,32);p++){const idx=p*4;const r=data[idx];bits.push(r&1);}
+        if(bits.length<32)throw new Error('Not enough bits for header.');
+        let lenBytes=0;for(let i=0;i<32;i++)lenBytes=(lenBytes<<1)|bits[i];
+        log(`Header indicates payload length: ${lenBytes} bytes`);
+        const totalBitsNeeded=(4+lenBytes)*8;
+        if(totalBitsNeeded>totalPixels)throw new Error(`Carrier capacity insufficient. Need ${totalBitsNeeded} bits but carrier has ${totalPixels} pixels.`);
+        for(let p=32;p<totalPixels&&bits.length<totalBitsNeeded;p++){const idx=p*4;const r=data[idx];bits.push(r&1);}
+        if(bits.length<totalBitsNeeded)throw new Error('Failed to read full payload bits.');
+        renderHeatmap(bits,w,h);
+        const allBytes=bitsToBytes(bits);
+        const payloadBytes=allBytes.slice(4);
+        const payloadStr=new TextDecoder().decode(payloadBytes);
+        log('Extracted payload string length: '+payloadStr.length);
+        let parsed;try{parsed=JSON.parse(payloadStr);}catch(e){throw new Error('Failed to parse payload JSON.');}
+        if(!parsed.ct||!parsed.hmac)throw new Error('Payload missing ciphertext or hmac.');
+        log('Verifying HMAC...');
+        const computedHmac=CryptoJS.HmacSHA256(parsed.ct,password).toString(CryptoJS.enc.Hex);
+        if(!hexEquals(computedHmac,parsed.hmac))throw new Error('HMAC mismatch — authentication failed.');
+        log('HMAC verified. Decrypting ciphertext...');
+        const decryptedWords=CryptoJS.AES.decrypt(parsed.ct,password);
+        const decryptedText=decryptedWords.toString(CryptoJS.enc.Utf8);
+        if(!decryptedText)throw new Error('Decryption returned empty string.');
+        let inner;try{inner=JSON.parse(decryptedText);}catch(e){throw new Error('Decryption succeeded but payload JSON parsing failed.');}
+        const now=Date.now();
+        if(!inner.iat){log('Warning: payload missing iat','error');resultEl.innerHTML='<div class="error">❌ Token invalid</div>';return;}
+        const age=now-inner.iat;const expired=age>TTL_MS_FIXED;log(`Payload age: ${age} ms`);
+        if(expired){
+          resultEl.innerHTML='<div class="error">❌ Token expired — payload hidden</div>';
+        }else{
+          const remainingMs=TTL_MS_FIXED-age;
+          const mm=Math.floor(remainingMs/60000);
+          const ss=Math.floor((remainingMs%60000)/1000);
+          const expiresStr=`${mm}m ${String(ss).padStart(2,'0')}s`;
+          const dt=new Date(inner.iat);
+          const generatedAt=dt.toLocaleString('en-US',{timeZone:'Asia/Kolkata',hour12:true});
+          const decryptedSecret=inner.secret||'(no secret field)';
+          resultEl.innerHTML=`
+            <div class="success">✅ Success! Token Validated.</div>
+            <div style="margin-top:10px;font-weight:700;">Decrypted Secret</div>
+            <pre class="payload">${decryptedSecret}</pre>
+            <div style="margin-top:10px">Expires in: <strong>${expiresStr}</strong></div>
+            <div style="margin-top:4px">Generated At: <strong>${generatedAt}</strong></div>
+          `;
+          meta.innerHTML=`<div class="muted">Carrier pixels: <strong>${totalPixels}</strong> • Payload bytes: <strong>${lenBytes}</strong></div>`;
+        }
+        log(expired?'Token expired.':'Valid payload.');
+      }catch(err){
+        log('Error: '+(err.message||err),'error');
+        resultEl.innerHTML='<div class="error">Extraction failed: '+(err.message||err)+'</div>';
+      }finally{URL.revokeObjectURL(url);}
+    };
+    img.onerror=()=>{log('Failed to load image.','error');resultEl.innerHTML='<div class="error">Failed to load image</div>';URL.revokeObjectURL(url);};
+  }
+  extractBtn.addEventListener('click',handleExtract);
+  resetBtn.addEventListener('click',()=>{
+    processLogEl.textContent='';
+    resultEl.innerHTML='Nothing extracted yet — follow the steps on the left.';
+    canvas.width=canvas.height=1;canvas.style.display='none';heatmapCanvas.style.display='none';meta.innerHTML='';
+    dropzone.textContent='Drag & drop a PNG file here, or click to choose';
+    fileInput.value='';passwordInput.value='';
+    logSummaryEl.textContent='Summary: —';pwStrength.textContent='Strength: —';pwMeterFill.style.width='0%';
+  });
+  passwordInput.addEventListener('keydown',e=>{if(e.key==='Enter')handleExtract();});
+})();
+</script>
+</body>
+</html>
